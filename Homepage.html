@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DioGuardi's Italian Market &amp; Deli — Canton, Ohio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Yeseva+One&family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="styles.css"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body data-density="dense" data-palette="cream">
+
+<!-- Parmesan loader -->
+<div class="parm-loader-wrap" id="parmLoader">
+  <div class="parm-wheel"></div>
+  <div class="parm-caption">grating the parmesan…</div>
+</div>
+
+<!-- Tweaks panel -->
+<div class="tweaks-panel" id="tweaksPanel">
+  <h4>Tweaks</h4>
+  <div class="tweaks-row">
+    <label>Paper tone</label>
+    <div class="tweaks-swatches" id="paletteSwatches">
+      <div class="tweaks-swatch active" data-pal="cream" style="background:#FBF4E6"></div>
+      <div class="tweaks-swatch" data-pal="bone"  style="background:#F5EFE0"></div>
+      <div class="tweaks-swatch" data-pal="blush" style="background:#F8ECDF"></div>
+    </div>
+  </div>
+  <div class="tweaks-row">
+    <label>Section density</label>
+    <div style="display:flex; gap:6px">
+      <button class="btn ghost" style="padding:6px 12px; font-size:12px; flex:1" data-density="dense">Dense</button>
+      <button class="btn ghost" style="padding:6px 12px; font-size:12px; flex:1" data-density="default">Normal</button>
+      <button class="btn ghost" style="padding:6px 12px; font-size:12px; flex:1" data-density="airy">Airy</button>
+    </div>
+  </div>
+  <div class="tweaks-row">
+    <label>Custom cursor</label>
+    <div style="display:flex; gap:6px">
+      <button class="btn ghost" style="padding:6px 12px; font-size:12px; flex:1" data-cursor="on">🥪 On</button>
+      <button class="btn ghost" style="padding:6px 12px; font-size:12px; flex:1" data-cursor="off">Off</button>
+    </div>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<!-- Tweak defaults (editable via Tweaks panel) -->
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "cream",
+  "cursor": "on",
+  "density": "dense"
+}/*EDITMODE-END*/;
+
+(function applyTweaks() {
+  document.body.dataset.palette = TWEAK_DEFAULTS.palette;
+  document.body.dataset.density = TWEAK_DEFAULTS.density;
+  if (TWEAK_DEFAULTS.cursor === "off") {
+    document.documentElement.style.setProperty("--no-cursor", "1");
+    const s = document.createElement("style");
+    s.id = "no-cursor-style";
+    s.textContent = `a, button, [data-cursor="sandwich"], .builder-item, .spec-card, .chef-card { cursor: pointer !important; }`;
+    document.head.appendChild(s);
+  }
+})();
+
+// Loader hide
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    const l = document.getElementById("parmLoader");
+    if (l) {
+      l.classList.add("hide");
+      setTimeout(() => l.remove(), 700);
+    }
+  }, 1200);
+});
+
+// Tweaks wiring
+(function wireTweaks() {
+  let listenerReady = false;
+  const panel = document.getElementById("tweaksPanel");
+
+  window.addEventListener("message", (e) => {
+    if (!e.data || !e.data.type) return;
+    if (e.data.type === "__activate_edit_mode") panel.classList.add("open");
+    if (e.data.type === "__deactivate_edit_mode") panel.classList.remove("open");
+  });
+  listenerReady = true;
+
+  if (listenerReady) {
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+  }
+
+  function setEdit(edits) {
+    window.parent.postMessage({ type: "__edit_mode_set_keys", edits }, "*");
+  }
+
+  // palette
+  document.querySelectorAll("#paletteSwatches .tweaks-swatch").forEach(sw => {
+    sw.addEventListener("click", () => {
+      document.querySelectorAll("#paletteSwatches .tweaks-swatch").forEach(s => s.classList.remove("active"));
+      sw.classList.add("active");
+      const pal = sw.dataset.pal;
+      document.body.dataset.palette = pal;
+      setEdit({ palette: pal });
+    });
+  });
+
+  // density
+  document.querySelectorAll("[data-density]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const d = btn.dataset.density;
+      if (d === "default") {
+        document.body.removeAttribute("data-density");
+      } else {
+        document.body.dataset.density = d;
+      }
+      setEdit({ density: d });
+    });
+  });
+
+  // cursor
+  document.querySelectorAll("[data-cursor]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const c = btn.dataset.cursor;
+      const existing = document.getElementById("no-cursor-style");
+      if (c === "off" && !existing) {
+        const s = document.createElement("style");
+        s.id = "no-cursor-style";
+        s.textContent = `a, button, [data-cursor="sandwich"], .builder-item, .spec-card, .chef-card { cursor: pointer !important; }`;
+        document.head.appendChild(s);
+      } else if (c === "on" && existing) {
+        existing.remove();
+      }
+      setEdit({ cursor: c });
+    });
+  });
+})();
+</script>
+
+<script type="text/babel" src="components/NavHero.jsx"></script>
+<script type="text/babel" src="components/Sections.jsx"></script>
+<script type="text/babel" src="components/Builder.jsx"></script>
+<script type="text/babel" src="components/ChefsVisit.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  return (
+    <>
+      <Nav/>
+      <Hero/>
+      <MarketStrip/>
+      <Specials/>
+      <SandwichBuilder/>
+      <Chefs/>
+      <Visit/>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+</body>
+</html>
