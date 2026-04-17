@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/Homepage.html" }
+  ],
+  "headers": [
+    {
+      "source": "/components/(.*).jsx",
+      "headers": [{ "key": "Content-Type", "value": "text/javascript" }]
+    }
+  ]
+}
